@@ -18,3 +18,4 @@ nytprof.out
 *.o
 *.bs
 .zulip-rc
+.zulip-translations

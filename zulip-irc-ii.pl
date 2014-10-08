@@ -84,6 +84,8 @@ sub writer {
         maxinterval => 2,
     );
 
+    my $translations = get_translations($options->{translations});
+
     # get a subscription list first/manage that?
     while (defined(my $line = $tailer->read())) {
         # look for stream: message
@@ -104,6 +106,11 @@ sub writer {
             next unless ($+{nick} eq $options->{nick});
 
             my $type = (index($+{to}, '@') == -1) ? 'stream' : 'private';
+            if (scalar(keys(%$translations))) {
+                for my $word (split(/ /, $+{content})) {
+                    $content =~ s/$word/$translations->{$word}/g if (exists($translations->{$word}));
+                }
+            }
 
             my $result = $zulip->send_message(
                 content => $+{content},
@@ -123,6 +130,7 @@ sub get_options {
         'user'      => 'nobody',
         'group'     => 'nogroup',
         'pidfile'   => '/tmp/zulip-irc-ii.pid',
+        'translations' => undef,
     );
 
     # path to pid file option?
@@ -133,6 +141,7 @@ sub get_options {
         'user|u:s',
         'group|g:s',
         'pidfile|p:s',
+        'translations|t:s',
     ) or pod2usage(2);
 
     die qq{Zulip config file ($opts{file}) doesn't exist} unless -e -r $opts{file};
@@ -165,6 +174,20 @@ sub get_creds {
     die q{Creds must contain api_key}  unless $creds->{api_key};
     die q{Creds must contain api_user} unless $creds->{api_user};
     return $creds;
+}
+
+sub get_translations {
+    my $filename = shift;
+    return unless $filename;
+    my $translations;
+    # kind of lame that the translations file is json
+    open my $fh, '<', $filename or die "$!";
+    {
+        local $/ = undef;
+        # stop being lazy about json decoding ;_;
+        $translations = decode_json(<$fh>);
+    }
+    return $translations;
 }
 
 __END__
