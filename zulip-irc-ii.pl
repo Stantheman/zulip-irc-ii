@@ -6,6 +6,7 @@ use 5.10.1;
 use Getopt::Long qw(:config auto_help);
 use Pod::Usage;
 use JSON;
+use File::Tail;
 # checkout App::Daemonize instead
 use Net::Server::Daemonize 'daemonize';
 use WebService::Zulip;
@@ -21,9 +22,7 @@ my $zulip   = WebService::Zulip->new(%{$creds});
 
 # daemonize - make these options
 daemonize(
-    'nobody',                 # User
-    'nogroup',                 # Group
-    '/run/zulip-irc-ii.pid'   # Path to PID file - optional
+    $options{user}, $options{group}, $options{pidfile}
 );
 
 # fork off two workers -- one for processing input, one for output
@@ -75,25 +74,70 @@ sub reader {
 }
 
 sub writer {
+    my ($zulip, $options) = @_;
+
+    # get a pretty name
     $0 = 'zulip-irc-ii writer';
+
+    my $tailer = File::Tail->new(
+        name        => $options->{out_file},
+        maxinterval => 30
+    );
+
+    # get a subscription list first/manage that?
+    while (defined(my $line = $tailer->read())) {
+        # look for stream: message
+        # 2014-10-08 11:27 <stan_theman> k
+        # http://tools.ietf.org/html/rfc2812#section-2.3.1
+        if ($line =~ /
+            ^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2} #timestamp
+            \s
+            <([^<]+)> # nickname, sorry rfc
+            \s
+            (.*)$     # message
+        /x) {
+            my ($nick, $message) = ($1, $2);
+            next unless $nick =~ $options{nick};
+            if ($message =~ /
+                ^([^:]+) # user or stream
+                :
+                (.*)$    # content
+            /x) {
+                my $result = $zulip->send_message(
+                    content => "testing, room is $1, content is $2",
+                    to      => 'stan@schwertly.com',
+                    type    => 'private'
+                );
+            }
+        }
+    }
 }
 
 sub get_options {
     my %opts = (
-        'file' => '.zulip-rc',
+        'file'      => '.zulip-rc',
         'directory' => './ii',
+        'nick'      => ''
+        'user'      => 'nobody',
+        'group'     => 'nogroup',
+        'pidfile'   => '/tmp/zulip-irc-ii.pid',
     );
 
     # path to pid file option?
     GetOptions(\%opts,
-        'directory|d=s',
+        'directory|d:s',
         'file|f:s',
+        'nick|n:s',
+        'user|u:s',
+        'group|g:s',
+        'pidfile|p:s',
     ) or pod2usage(2);
 
-    die qq{Zulip config file ($opts{file}) doesn't exist} unless -e $opts{file};
+    die qq{Zulip config file ($opts{file}) doesn't exist} unless -e -r $opts{file};
     unless (defined ($opts{directory}) && -d -r -w $opts{directory}) {
         die qq{Directory for ii ($opts{directory}) doesn't exist};
     }
+    die qq{Must provide your IRC name} unless $opts{nick} ne '';
 
     # make life easier by specifically defining the in and out files
     $opts{in_fifo}  = $opts{directory} . '/in';
