@@ -25,7 +25,7 @@ WebService::Zulip module.
 
 Install ii, then join it to an IRC network of your choice. For example,
 
-ii -s irc.freenode.org -p 6667 -n zulipbot -f zulipbot -i /tmp/ii
+    ii -s irc.freenode.org -p 6667 -n zulipbot -f zulipbot -i /tmp/ii
 
 You'll want to read the ii man page for descriptions of the commands. Then, you
 can join your bot to a channel with a command like
