@@ -100,13 +100,13 @@ sub writer {
             next unless $nick =~ $options->{nick};
             if ($message =~ /
                 ^([^:]+) # user or stream
-                :
+                :\s*
                 (.*)$    # content
             /x) {
                 my $result = $zulip->send_message(
-                    content => "testing, room is $1, content is $2",
-                    to      => 'stan@schwertly.com',
-                    type    => 'private'
+                    content => $2,
+                    to      => $1,
+                    type    => 'stream'
                 );
             }
         }
