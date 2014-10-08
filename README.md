@@ -4,7 +4,7 @@ zulip-irc-ii - Transport messages between Zulip and IRC using ii
 
 # USAGE
 
-        ./zulip-irc-ii -d /path/to/ii/channel/dir -f /path/to/zulip/creds
+    ./zulip-irc-ii -d /path/to/ii/channel/dir -f /path/to/zulip/creds
 
 # DESCRIPTION
 
