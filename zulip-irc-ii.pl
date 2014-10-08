@@ -22,7 +22,7 @@ my $zulip   = WebService::Zulip->new(%{$creds});
 
 # daemonize - make these options
 daemonize(
-    $options{user}, $options{group}, $options{pidfile}
+    $options->{user}, $options->{group}, $options->{pidfile}
 );
 
 # fork off two workers -- one for processing input, one for output
@@ -97,7 +97,7 @@ sub writer {
             (.*)$     # message
         /x) {
             my ($nick, $message) = ($1, $2);
-            next unless $nick =~ $options{nick};
+            next unless $nick =~ $options->{nick};
             if ($message =~ /
                 ^([^:]+) # user or stream
                 :
@@ -117,7 +117,7 @@ sub get_options {
     my %opts = (
         'file'      => '.zulip-rc',
         'directory' => './ii',
-        'nick'      => ''
+        'nick'      => '',
         'user'      => 'nobody',
         'group'     => 'nogroup',
         'pidfile'   => '/tmp/zulip-irc-ii.pid',
