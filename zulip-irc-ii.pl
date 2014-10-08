@@ -108,7 +108,7 @@ sub writer {
             my $type = (index($+{to}, '@') == -1) ? 'stream' : 'private';
             if (scalar(keys(%$translations))) {
                 for my $word (split(/ /, $+{content})) {
-                    $content =~ s/$word/$translations->{$word}/g if (exists($translations->{$word}));
+                    $+{content} =~ s/$word/$translations->{$word}/g if (exists($translations->{$word}));
                 }
             }
 
