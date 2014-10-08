@@ -26,29 +26,32 @@ daemonize(
 );
 
 # fork off two workers -- one for processing input, one for output
-my $reader = forker($zulip, \&reader);
-my $writer = forker($zulip, \&writer);
+my $reader = forker($zulip, $options, \&reader);
+my $writer = forker($zulip, $options, \&writer);
 
 1 while (wait() != -1);
 
 sub forker {
-    my ($zulip, $subref) = @_;
+    my ($zulip, $options, $subref) = @_;
     my $pid = fork();
     # in the parent
     return $pid if ($pid);
     # couldn't fork
     die q{Couldn't fork reader} unless defined($pid);
     # in the child
-    $subref->($zulip);
+    $subref->($zulip, $options);
 }
 
 sub reader {
-    my $zulip = shift;
+    my ($zulip, $options) = @_;
 
     # get a pretty name
     $0 = 'zulip-irc-ii reader';
 
     my $queue = $zulip->get_message_queue();
+    open my $fh, '>', $options->{in_fifo} or die "$!";
+    # suffering from buffering tricks
+    select((select($fh), $|=1)[0]);
 
     # eat messages forever
     while (1) {
@@ -61,10 +64,10 @@ sub reader {
             my $message = $event->{message};
             next unless $event->{type} eq 'message';
             if ($message->{type} eq 'private') {
-                print "$message->{sender_short_name} PMed you: $message->{content}\n";
+                print $fh "$message->{sender_short_name} PMed you: $message->{content}\n";
                 next;
             }
-            print "$message->{sender_short_name} in $message->{display_recipient}: $message->{content}\n";
+            print $fh "$message->{sender_short_name} in $message->{display_recipient}: $message->{content}\n";
         }
         $queue->{last_event_id} = $zulip->get_last_event_id($result);
     }
@@ -89,6 +92,14 @@ sub get_options {
     die qq{Zulip config file ($opts{file}) doesn't exist} unless -e $opts{file};
     unless (defined ($opts{directory}) && -d $opts{directory}) {
         die qq{Directory for ii ($opts{directory}) doesn't exist};
+    }
+
+    # make life easier by specifically defining the in and out files
+    $opts{in_fifo}  = $opts{directory} . '/in';
+    $opts{out_file} = $opts{directory} . '/out';
+
+    unless (-p $opts{in_fifo} && -f $opts{out_file}) {
+        die qq{Directory for ii ($opts{directory}) doesn't look like an ii dir};
     }
 
     return \%opts;
