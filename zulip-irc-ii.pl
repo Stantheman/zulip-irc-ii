@@ -92,29 +92,25 @@ sub writer {
         if ($line =~ /
             ^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2} #timestamp
             \s
-            <([^<]+)> # nickname, sorry rfc
+            <(?<nick>[^<]+)>         # nickname, sorry rfc
             \s
-            (.*)$     # message
+            (?<to>[^:\/]+)           # user or stream
+            (?:\/(?<subject>[^:]+))? # optional literal slash and captured topic
+            :\s*                     # get rid of any trailing spaces
+            (?<content>.*)$          # content
         /x) {
-            my ($nick, $message) = ($1, $2);
-            next unless $nick =~ $options->{nick};
-            if ($message =~ /
-                ^([^:\/]+) # user or stream
-                (?:\/([^:]+))? # topic
-                :\s*
-                (.*)$    # content
-            /x) {
-                # should named capture
-                my ($to, $subject, $content) = ($1,$2,$3);
-                my $type = index($to, '@') == -1 ? 'stream' : 'private';
+            # ignore other people if they happen to be in the channel
+            # at least ignore the bot itself
+            next unless $+{nick} =~ $options->{nick};
 
-                my $result = $zulip->send_message(
-                    content => $content,
-                    subject => $subject,
-                    to      => $to,
-                    type    => $type
-                );
-            }
+            my $type = index($+{to}, '@') == -1 ? 'stream' : 'private';
+
+            my $result = $zulip->send_message(
+                content => $+{content},
+                subject => $+{subject},
+                to      => $+{to},
+                type    => $+{type},
+            );
         }
     }
 }
