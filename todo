@@ -1,0 +1,5 @@
+- make actually start/stop daemon script
+- convenience filter, turn <3 into :heart: etc
+- use more api functions in wrapper i'm not done making
+- logging?
+
