@@ -81,7 +81,7 @@ sub writer {
 
     my $tailer = File::Tail->new(
         name        => $options->{out_file},
-        maxinterval => 30
+        maxinterval => 10
     );
 
     # get a subscription list first/manage that?
@@ -99,14 +99,20 @@ sub writer {
             my ($nick, $message) = ($1, $2);
             next unless $nick =~ $options->{nick};
             if ($message =~ /
-                ^([^:]+) # user or stream
+                ^([^:\/]+) # user or stream
+				(?:\/([^:]+))? # topic
                 :\s*
                 (.*)$    # content
             /x) {
+				# should named capture
+				my ($to, $subject, $content) = ($1,$2,$3);
+				my $type = index($to, '@') == -1 ? 'stream' : 'private';
+
                 my $result = $zulip->send_message(
-                    content => $2,
-                    to      => $1,
-                    type    => 'stream'
+                    content => $content,
+					subject => $subject,
+                    to      => $to,
+                    type    => $type
                 );
             }
         }
