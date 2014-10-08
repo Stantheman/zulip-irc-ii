@@ -2,12 +2,38 @@
 use strict;
 use warnings;
 
+use Getopt::Long qw(:config auto_help);
+use Net::Server::Daemonize 'daemonize';
 use WebService::Zulip;
 use Data::Printer;
 
 # take options
+my $options = get_options();
+
 # daemonize
+daemonize(
+    'nobody',                 # User
+    'nobody',                 # Group
+    '/run/zulip-irc-ii.pid'   # Path to PID file - optional
+);
+
 # fork off two workers -- one for processing input, one for output
+
+sub get_options {
+    my %opts = (
+        'file' => '.zulip-rc',
+    );
+
+    GetOptions(\%opts,
+        'directory|d=s',
+        'file|f:s',
+    ) or pod2usage(2);
+
+    die q{Zulip config file doesn't exist} unless -e $opts{file};
+    die q{Directory for ii doesn't exist}  unless -d $opts{directory};
+
+    return \%opts;
+}
 
 __END__
 
@@ -17,7 +43,7 @@ zulip-irc-ii - Transport messages between Zulip and IRC using ii
 
 =head1 USAGE
 
-	./zulip-irc-ii -d /path/to/ii/channel/dir -f /path/to/zulip/creds
+    ./zulip-irc-ii -d /path/to/ii/channel/dir -f /path/to/zulip/creds
 
 =head1 DESCRIPTION
 
