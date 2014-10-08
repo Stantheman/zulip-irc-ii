@@ -5,6 +5,7 @@ use warnings;
 use Getopt::Long qw(:config auto_help);
 use Pod::Usage;
 use JSON;
+# checkout App::Daemonize instead
 use Net::Server::Daemonize 'daemonize';
 use WebService::Zulip;
 use Data::Printer;
@@ -14,7 +15,7 @@ my $options = get_options();
 my $creds   = get_creds($options->{file});
 my $zulip   = WebService::Zulip->new(%{$creds});
 
-# daemonize
+# daemonize - make these options
 daemonize(
     'nobody',                 # User
     'nogroup',                 # Group
