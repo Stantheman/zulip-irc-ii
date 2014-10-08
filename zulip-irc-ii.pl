@@ -3,12 +3,16 @@ use strict;
 use warnings;
 
 use Getopt::Long qw(:config auto_help);
+use Pod::Usage;
+use JSON;
 use Net::Server::Daemonize 'daemonize';
 use WebService::Zulip;
 use Data::Printer;
 
 # take options
 my $options = get_options();
+my $creds   = get_creds($options->{file});
+my $zulip   = WebService::Zulip->new(%{$creds});
 
 # daemonize
 daemonize(
@@ -22,17 +26,36 @@ daemonize(
 sub get_options {
     my %opts = (
         'file' => '.zulip-rc',
+        'directory' => './ii',
     );
 
+    # path to pid file option?
     GetOptions(\%opts,
         'directory|d=s',
         'file|f:s',
     ) or pod2usage(2);
 
-    die q{Zulip config file doesn't exist} unless -e $opts{file};
-    die q{Directory for ii doesn't exist}  unless -d $opts{directory};
+    die qq{Zulip config file ($opts{file}) doesn't exist} unless -e $opts{file};
+    unless (defined ($opts{directory}) && -d $opts{directory}) {
+        die qq{Directory for ii ($opts{directory}) doesn't exist};
+    }
 
     return \%opts;
+}
+
+sub get_creds {
+    my $filename = shift;
+    my $creds;
+    # kind of lame that the cred file is json
+    open my $fh, '<', $filename or die "$!";
+    {
+        local $/ = undef;
+        # stop being lazy about json decoding ;_;
+        $creds = decode_json(<$fh>);
+    }
+    die q{Creds must contain api_key}  unless $creds->{api_key};
+    die q{Creds must contain api_user} unless $creds->{api_user};
+    return $creds;
 }
 
 __END__
