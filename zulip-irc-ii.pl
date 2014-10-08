@@ -100,17 +100,17 @@ sub writer {
             next unless $nick =~ $options->{nick};
             if ($message =~ /
                 ^([^:\/]+) # user or stream
-				(?:\/([^:]+))? # topic
+                (?:\/([^:]+))? # topic
                 :\s*
                 (.*)$    # content
             /x) {
-				# should named capture
-				my ($to, $subject, $content) = ($1,$2,$3);
-				my $type = index($to, '@') == -1 ? 'stream' : 'private';
+                # should named capture
+                my ($to, $subject, $content) = ($1,$2,$3);
+                my $type = index($to, '@') == -1 ? 'stream' : 'private';
 
                 my $result = $zulip->send_message(
                     content => $content,
-					subject => $subject,
+                    subject => $subject,
                     to      => $to,
                     type    => $type
                 );
