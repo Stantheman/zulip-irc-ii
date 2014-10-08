@@ -81,7 +81,7 @@ sub writer {
 
     my $tailer = File::Tail->new(
         name        => $options->{out_file},
-        maxinterval => 10
+        maxinterval => 2,
     );
 
     # get a subscription list first/manage that?
@@ -101,15 +101,15 @@ sub writer {
         /x) {
             # ignore other people if they happen to be in the channel
             # at least ignore the bot itself
-            next unless $+{nick} =~ $options->{nick};
+            next unless ($+{nick} eq $options->{nick});
 
-            my $type = index($+{to}, '@') == -1 ? 'stream' : 'private';
+            my $type = (index($+{to}, '@') == -1) ? 'stream' : 'private';
 
             my $result = $zulip->send_message(
                 content => $+{content},
                 subject => $+{subject},
                 to      => $+{to},
-                type    => $+{type},
+                type    => $type,
             );
         }
     }
