@@ -1,6 +1,7 @@
 #!/usr/bin/env perl
 use strict;
 use warnings;
+use 5.10.1;
 
 use Getopt::Long qw(:config auto_help);
 use Pod::Usage;
@@ -90,7 +91,7 @@ sub get_options {
     ) or pod2usage(2);
 
     die qq{Zulip config file ($opts{file}) doesn't exist} unless -e $opts{file};
-    unless (defined ($opts{directory}) && -d $opts{directory}) {
+    unless (defined ($opts{directory}) && -d -r -w $opts{directory}) {
         die qq{Directory for ii ($opts{directory}) doesn't exist};
     }
 
@@ -98,7 +99,7 @@ sub get_options {
     $opts{in_fifo}  = $opts{directory} . '/in';
     $opts{out_file} = $opts{directory} . '/out';
 
-    unless (-p $opts{in_fifo} && -f $opts{out_file}) {
+    unless (-p -w $opts{in_fifo} && -f -r $opts{out_file}) {
         die qq{Directory for ii ($opts{directory}) doesn't look like an ii dir};
     }
 
