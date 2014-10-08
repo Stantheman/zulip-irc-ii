@@ -17,7 +17,7 @@ my $zulip   = WebService::Zulip->new(%{$creds});
 # daemonize
 daemonize(
     'nobody',                 # User
-    'nobody',                 # Group
+    'nogroup',                 # Group
     '/run/zulip-irc-ii.pid'   # Path to PID file - optional
 );
 
