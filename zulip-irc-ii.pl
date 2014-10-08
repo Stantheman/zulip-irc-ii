@@ -10,6 +10,9 @@ use Net::Server::Daemonize 'daemonize';
 use WebService::Zulip;
 use Data::Printer;
 
+# a name for ourselves
+$0 = 'zulip-irc-ii parent';
+
 # take options
 my $options = get_options();
 my $creds   = get_creds($options->{file});
@@ -23,6 +26,53 @@ daemonize(
 );
 
 # fork off two workers -- one for processing input, one for output
+my $reader = forker($zulip, \&reader);
+my $writer = forker($zulip, \&writer);
+
+1 while (wait() != -1);
+
+sub forker {
+    my ($zulip, $subref) = @_;
+    my $pid = fork();
+    # in the parent
+    return $pid if ($pid);
+    # couldn't fork
+    die q{Couldn't fork reader} unless defined($pid);
+    # in the child
+    $subref->($zulip);
+}
+
+sub reader {
+    my $zulip = shift;
+
+    # get a pretty name
+    $0 = 'zulip-irc-ii reader';
+
+    my $queue = $zulip->get_message_queue();
+
+    # eat messages forever
+    while (1) {
+        my $result = $zulip->get_new_events(
+            queue_id      => $queue->{queue_id},
+            last_event_id => $queue->{last_event_id},
+            dont_block => 'false'
+        );
+        for my $event (@{$result->{events}}) {
+            my $message = $event->{message};
+            next unless $event->{type} eq 'message';
+            if ($message->{type} eq 'private') {
+                print "$message->{sender_short_name} PMed you: $message->{content}\n";
+                next;
+            }
+            print "$message->{sender_short_name} in $message->{display_recipient}: $message->{content}\n";
+        }
+        $queue->{last_event_id} = $zulip->get_last_event_id($result);
+    }
+}
+
+sub writer {
+    $0 = 'zulip-irc-ii writer';
+}
 
 sub get_options {
     my %opts = (
