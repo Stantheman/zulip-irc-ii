@@ -72,7 +72,7 @@ sub reader {
                 print $fh "$message->{sender_short_name} PMed you: $message->{content}\n";
                 next;
             }
-            print $fh "$message->{sender_short_name} in $message->{display_recipient}: $message->{content}\n";
+            print $fh "$message->{sender_short_name} in $message->{display_recipient}/$message->{subject}: $message->{content}\n";
         }
         $queue->{last_event_id} = $zulip->get_last_event_id($result);
     }
