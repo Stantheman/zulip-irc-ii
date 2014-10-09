@@ -111,14 +111,16 @@ sub writer {
             next unless ($+{nick} eq $options->{nick});
 
             my $type = (index($+{to}, '@') == -1) ? 'stream' : 'private';
+            # can't modify this variable, so copy it
+            my $content = $+{content};
             if (scalar(keys(%$translations))) {
                 for my $word (split(/ /, $+{content})) {
-                    $+{content} =~ s/\Q$word\E/$translations->{$word}/g if (exists($translations->{$word}));
+                    $content =~ s/\Q$word\E/$translations->{$word}/g if (exists($translations->{$word}));
                 }
             }
 
             my $result = $zulip->send_message(
-                content => $+{content},
+                content => $content,
                 subject => $+{subject},
                 to      => $+{to},
                 type    => $type,
