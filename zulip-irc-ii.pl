@@ -19,7 +19,8 @@ $0 = 'zulip-irc-ii parent';
 my $options = get_options();
 my $creds   = get_creds($options->{file});
 my $logger  = get_logger($options);
-my $zulip   = WebService::Zulip->new(%{$creds});
+my $translations = get_translations($options->{translations});
+my $zulip        = WebService::Zulip->new(%{$creds});
 
 # daemonize - make these options
 if ($options->{daemonize} == 1) {
@@ -28,20 +29,20 @@ if ($options->{daemonize} == 1) {
 
 # fork off two workers -- one for processing input, one for output
 $logger->("Starting...");
-my $reader = forker($zulip, $options, \&reader);
-my $writer = forker($zulip, $options, \&writer);
+my $reader = forker($zulip, $options, $translations, \&reader);
+my $writer = forker($zulip, $options, $translations, \&writer);
 
 1 while (wait() != -1);
 
 sub forker {
-    my ($zulip, $options, $subref) = @_;
+    my ($zulip, $options, $translations, $subref) = @_;
     my $pid = fork();
     # in the parent
     return $pid if ($pid);
     # couldn't fork
     die q{Couldn't fork reader} unless defined($pid);
     # in the child
-    $subref->($zulip, $options);
+    $subref->($zulip, $options, $translations);
 }
 
 sub reader {
@@ -78,7 +79,7 @@ sub reader {
 }
 
 sub writer {
-    my ($zulip, $options) = @_;
+    my ($zulip, $options, $translations) = @_;
 
     # get a pretty name
     $0 = 'zulip-irc-ii writer';
@@ -88,8 +89,7 @@ sub writer {
         maxinterval => 2,
     );
 
-    my $translations = get_translations($options->{translations});
-    $logger->("Writer initialized, translations loaded and tailing $options->{out_file}");
+    $logger->("Writer initialized, tailing $options->{out_file}");
 
     # get a subscription list first/manage that?
     while (defined(my $line = $tailer->read())) {
