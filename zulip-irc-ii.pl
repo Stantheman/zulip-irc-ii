@@ -189,7 +189,6 @@ sub get_creds {
 
 sub get_translations {
     my $filename = shift;
-    print "THE FILENAME IS $filename\n";
     return unless $filename;
     my $translations;
     # kind of lame that the translations file is json
