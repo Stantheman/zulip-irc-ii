@@ -1,5 +1,8 @@
 - make actually start/stop daemon script
 - convenience filter, turn <3 into :heart: etc
+ - works, i want one for the other direction maybe?
+ - bug with json reading...time to use yaml for configs anyway?
 - use more api functions in wrapper i'm not done making
 - logging?
+ - kind of works, is lame
 
