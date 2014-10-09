@@ -18,14 +18,16 @@ $0 = 'zulip-irc-ii parent';
 # take options
 my $options = get_options();
 my $creds   = get_creds($options->{file});
+my $logger  = get_logger($options);
 my $zulip   = WebService::Zulip->new(%{$creds});
 
 # daemonize - make these options
-daemonize(
-    $options->{user}, $options->{group}, $options->{pidfile}
-);
+if ($options->{daemonize} == 1) {
+    daemonize($options->{user}, $options->{group}, $options->{pidfile});
+}
 
 # fork off two workers -- one for processing input, one for output
+$logger->("Starting...");
 my $reader = forker($zulip, $options, \&reader);
 my $writer = forker($zulip, $options, \&writer);
 
@@ -52,6 +54,8 @@ sub reader {
     open my $fh, '>', $options->{in_fifo} or die "$!";
     # suffering from buffering tricks
     select((select($fh), $|=1)[0]);
+
+    $logger->("Reader initialized, filehandle hot on $options->{in_fifo}");
 
     # eat messages forever
     while (1) {
@@ -85,6 +89,7 @@ sub writer {
     );
 
     my $translations = get_translations($options->{translations});
+    $logger->("Writer initialized, translations loaded and tailing $options->{out_file}");
 
     # get a subscription list first/manage that?
     while (defined(my $line = $tailer->read())) {
@@ -131,6 +136,8 @@ sub get_options {
         'group'     => 'nogroup',
         'pidfile'   => '/tmp/zulip-irc-ii.pid',
         'translations' => undef,
+        'daemonize' => 1,
+        'logfile'   => undef
     );
 
     # path to pid file option?
@@ -142,6 +149,8 @@ sub get_options {
         'group|g:s',
         'pidfile|p:s',
         'translations|t:s',
+        'daemonize|d!',
+        'logfile|l:s',
     ) or pod2usage(2);
 
     die qq{Zulip config file ($opts{file}) doesn't exist} unless -e -r $opts{file};
@@ -178,6 +187,7 @@ sub get_creds {
 
 sub get_translations {
     my $filename = shift;
+    print "THE FILENAME IS $filename\n";
     return unless $filename;
     my $translations;
     # kind of lame that the translations file is json
@@ -188,6 +198,22 @@ sub get_translations {
         $translations = decode_json(<$fh>);
     }
     return $translations;
+}
+
+sub get_logger {
+    my $options = shift;
+    if ($options->{logfile}) {
+        return sub {
+            my $msg = shift;
+            open my $fh, '>>', $options->{logfile};
+            print $fh $msg;
+        };
+    } else {
+        return sub {
+            my $msg = shift;
+            print $msg . "\n";
+        };
+    }
 }
 
 __END__
