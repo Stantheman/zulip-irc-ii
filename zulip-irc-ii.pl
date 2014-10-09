@@ -208,7 +208,7 @@ sub get_logger {
         return sub {
             my $msg = shift;
             open my $fh, '>>', $options->{logfile};
-            print $fh $msg;
+            print $fh $msg . "\n";
         };
     } else {
         return sub {
