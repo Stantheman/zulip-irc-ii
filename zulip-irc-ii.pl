@@ -149,7 +149,7 @@ sub get_options {
         'group|g:s',
         'pidfile|p:s',
         'translations|t:s',
-        'daemonize|d!',
+        'daemonize!',
         'logfile|l:s',
     ) or pod2usage(2);
 
