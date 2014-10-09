@@ -253,16 +253,11 @@ can join your bot to a channel with a command like
 
     echo '/j ##zulip-for-me' > /tmp/ii/irc.freenode.org/in
 
-Once it's joined, run zulip-irc-ii:
-
-    ./zulip-irc-ii -d /tmp/ii/irc.freenode.org/\#\#zulip-for-me -f .zulip-rc
-
-You should see new messages in the channel. You can respond to messages by
-<doing some thing I haven't figured out yet, etc etc regex>
+Once it's joined, run zulip-irc-ii.pl, filling out the options.
 
 =head1 BUGS
 
-The code doesn't exist yet
+None so far.
 
 =head1 AUTHOR
 
